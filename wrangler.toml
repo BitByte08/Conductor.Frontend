@@ -1,6 +1,5 @@
-
 name = "conductor-frontend"
-compatibility_date = "2024-04-01"
+compatibility_date = "2024-12-01"
 
-[build]
-command = "npm run build"
+[assets]
+directory = "./dist"
