@@ -10,7 +10,7 @@ export const Console: React.FC = () => {
     const [input, setInput] = useState('');
 
     const sendCommand = async (cmd: string) => {
-        await fetch(`/api/agent/${agentId}/command`, {
+        await fetch(apiUrl(`/api/agent/${agentId}/command`), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ command: cmd })
@@ -18,7 +18,7 @@ export const Console: React.FC = () => {
     };
 
     const handleAction = async (action: 'start' | 'stop') => {
-        await fetch(`/api/agent/${agentId}/${action}`, { method: 'POST' });
+        await fetch(apiUrl(`/api/agent/${agentId}/${action}`), { method: 'POST' });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {

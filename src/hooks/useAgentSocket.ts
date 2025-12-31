@@ -13,10 +13,12 @@ export const useAgentSocket = (agentId: string) => {
     const [messages, setMessages] = useState<Message[]>([]);
 
     useEffect(() => {
-        // In dev, use proxy or direct localhost
+        // In dev, use proxy or direct localhost. Support overriding the API host via Vite env VITE_API_BASE
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        // Connect as a CLIENT listener
-        const wsUrl = `${protocol}//${window.location.host}/ws/client/${agentId}`;
+        const apiBase: string = (import.meta.env.VITE_API_BASE as string) || `${protocol.replace('wss','https').replace('ws','http')}//${window.location.host}`;
+        // Convert http(s) -> ws(s)
+        const wsBase = apiBase.replace(/^http/, protocol.replace('ws','http'));
+        const wsUrl = `${wsBase}/ws/client/${agentId}`;
 
         console.log('Connecting to:', wsUrl);
         const socket = new WebSocket(wsUrl);

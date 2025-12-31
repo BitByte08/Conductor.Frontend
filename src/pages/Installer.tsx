@@ -27,7 +27,7 @@ export const Installer: React.FC = () => {
 
         const fetchVersions = async () => {
             const q = filter ? `?q=${encodeURIComponent(filter)}&limit=200` : `?limit=200`;
-            const res = await fetch(`/api/metadata/versions/${type}${q}`, { signal: controller.signal });
+            const res = await fetch(apiUrl(`/api/metadata/versions/${type}${q}`), { signal: controller.signal });
             const data = await res.json();
             if (!mounted) return;
             if (type === 'paper') {
@@ -84,7 +84,7 @@ export const Installer: React.FC = () => {
         setInstallError(null);
         setInstallMessage('Installation requested — waiting for agent to finish...');
         try {
-            const res = await fetch(`/api/agent/${agentId}/install`, {
+            const res = await fetch(apiUrl(`/api/agent/${agentId}/install`), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ type, version: selectedVersion })

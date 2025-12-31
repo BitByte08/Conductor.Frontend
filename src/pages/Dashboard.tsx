@@ -126,7 +126,7 @@ export const Dashboard: React.FC = () => {
 
     const fetchAgents = () => {
         if (!token) return;
-        fetch('/api/agents', { headers: { Authorization: `Bearer ${token}` } })
+        fetch(apiUrl('/api/agents'), { headers: { Authorization: `Bearer ${token}` } })
             .then(res => {
                 if (res.status === 401) { logout(); return []; }
                 return res.json();

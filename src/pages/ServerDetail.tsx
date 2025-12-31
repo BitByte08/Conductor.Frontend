@@ -82,18 +82,18 @@ export const ServerDetail: React.FC = () => {
     // Fetch properties when entering Settings tab
     useEffect(() => {
         if (activeTab === 'settings' && agentId) {
-            fetch(`/api/agent/${agentId}/properties/fetch`, { method: 'POST' });
+            fetch(apiUrl(`/api/agent/${agentId}/properties/fetch`), { method: 'POST' });
         }
     }, [activeTab, agentId]);
 
     const handleAction = async (action: 'start' | 'stop') => {
         if (!agentId) return;
-        await fetch(`/api/agent/${agentId}/${action}`, { method: 'POST' });
+        await fetch(apiUrl(`/api/agent/${agentId}/${action}`), { method: 'POST' });
     };
 
     const handleSaveConfig = async () => {
         if (!agentId) return;
-        await fetch(`/api/agent/${agentId}/config`, {
+        await fetch(apiUrl(`/api/agent/${agentId}/config`), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ram_mb: ramConfig })
@@ -103,7 +103,7 @@ export const ServerDetail: React.FC = () => {
 
     const handleSaveProperties = async () => {
         if (!agentId) return;
-        await fetch(`/api/agent/${agentId}/properties/update`, {
+        await fetch(apiUrl(`/api/agent/${agentId}/properties/update`), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(serverProperties)
