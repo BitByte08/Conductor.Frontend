@@ -14,8 +14,8 @@ export const useAgentSocket = (agentId: string) => {
 
     useEffect(() => {
         // In dev, use proxy or direct localhost. Support overriding the API host via Vite env VITE_API_BASE
-        const defaultBase = `${window.location.protocol}//${window.location.host}`;
-        const apiBase: string = (import.meta.env.VITE_API_BASE as string) || defaultBase;
+        const DEFAULT_HTTP = 'https://conductor.bitworkspace.kr';
+        const apiBase: string = (import.meta.env.VITE_API_BASE as string) || DEFAULT_HTTP;
         // Convert http(s) -> ws(s)
         const toWs = (u: string) => {
             if (u.startsWith('https://')) return u.replace(/^https:/, 'wss:');

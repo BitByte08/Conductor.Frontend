@@ -80,12 +80,66 @@ export const ServerDetail: React.FC = () => {
         }
     }, [messages]);
 
-    // Fetch properties when entering Settings tab
+    // Fetch properties and collaborators when entering Settings tab
+    const [collaborators, setCollaborators] = React.useState<Array<{ id: number; username: string; role: string }>>([]);
+    const [inviteUsername, setInviteUsername] = React.useState('');
+    const [inviteRole, setInviteRole] = React.useState<'viewer'|'manager'>('viewer');
+    const [myRole, setMyRole] = React.useState<'owner'|'manager'|'viewer'|'unknown'>('unknown');
+
     useEffect(() => {
+        const fetchMyRole = async () => {
+            // Get agent list to find our role for this agent
+            const res = await fetch(apiUrl('/api/agents'), { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+            if (!res.ok) return;
+            const data = await res.json();
+            const me = data.find((a: any) => a.id === agentId);
+            if (me && me.role) setMyRole(me.role);
+        };
+
+        const fetchCollaborators = async () => {
+            const res = await fetch(apiUrl(`/api/agent/${agentId}/collaborators`), { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+            if (!res.ok) return;
+            const data = await res.json();
+            setCollaborators(data);
+        };
+
         if (activeTab === 'settings' && agentId) {
-            fetch(apiUrl(`/api/agent/${agentId}/properties/fetch`), { method: 'POST' });
+            fetch(apiUrl(`/api/agent/${agentId}/properties/fetch`), { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+            fetchMyRole();
+            fetchCollaborators();
         }
     }, [activeTab, agentId]);
+
+    const handleInvite = async () => {
+        if (!inviteUsername.trim()) return;
+        const res = await fetch(apiUrl(`/api/agent/${agentId}/collaborators`), {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: inviteUsername.trim(), role: inviteRole })
+        });
+        if (res.ok) {
+            setInviteUsername('');
+            setInviteRole('viewer');
+            // refresh list
+            const r = await fetch(apiUrl(`/api/agent/${agentId}/collaborators`), { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+            setCollaborators(await r.json());
+        } else {
+            const text = await res.text();
+            alert(`Invite failed: ${text}`);
+        }
+    };
+
+    const handleRemoveCollaborator = async (id: number) => {
+        if (!confirm('이 사용자를 협업자에서 제거하시겠습니까?')) return;
+        const res = await fetch(apiUrl(`/api/agent/${agentId}/collaborators/${id}`), { method: 'DELETE', headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+        if (res.ok) {
+            setCollaborators(prev => prev.filter(c => c.id !== id));
+        } else {
+            alert('Failed to remove collaborator');
+        }
+    };
+
+
 
     const handleAction = async (action: 'start' | 'stop') => {
         if (!agentId) return;
@@ -289,6 +343,40 @@ export const ServerDetail: React.FC = () => {
                                         ))}
                                     </div>
                                 </details>
+                            </div>
+                        </div>
+
+                        {/* Collaborators Section (full-width) */}
+                        <div style={{ gridColumn: '1 / -1' }}>
+                            <div className="glass-panel" style={{ padding: '1rem' }}>
+                                <h3>협업자 관리</h3>
+                                <div style={{ marginTop: '0.5rem', display: 'flex', gap: '8px' }}>
+                                    <input value={inviteUsername} onChange={e => setInviteUsername(e.target.value)} placeholder="Username to invite" style={{ padding: '0.5rem', marginRight: '0.5rem' }} />
+                                    <select value={inviteRole} onChange={e => setInviteRole(e.target.value as any)} style={{ padding: '0.5rem', marginRight: '0.5rem' }}>
+                                        <option value="viewer">Viewer</option>
+                                        <option value="manager">Manager</option>
+                                    </select>
+                                    <button onClick={handleInvite} className="btn-primary">초대</button>
+                                </div>
+
+                                <div style={{ marginTop: '1rem' }}>
+                                    <h4>현재 협업자</h4>
+                                    {collaborators.length === 0 ? (
+                                        <div style={{ color: 'var(--text-muted)' }}>협업자가 없습니다.</div>
+                                    ) : (
+                                        <ul>
+                                            {collaborators.map(c => (
+                                                <li key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                    <strong>{c.username}</strong>
+                                                    <span style={{ color: 'var(--text-muted)' }}>{c.role}</span>
+                                                    { (myRole === 'owner' || myRole === 'manager') && (
+                                                        <button onClick={() => handleRemoveCollaborator(c.id)} style={{ marginLeft: 'auto' }} className="btn-primary">제거</button>
+                                                    ) }
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
