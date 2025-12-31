@@ -143,7 +143,7 @@ export const Dashboard: React.FC = () => {
     const handleAddAgent = async () => {
         if (!newAgentName) return;
         try {
-            const res = await fetch('/api/agents/create', {
+            const res = await fetch(apiUrl('/api/agents/create'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

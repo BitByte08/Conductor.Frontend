@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { apiUrl } from '../lib/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { LayoutGrid } from 'lucide-react';
 
@@ -21,7 +22,7 @@ export const Register: React.FC = () => {
         }
 
         try {
-            const res = await fetch('/auth/register', {
+            const res = await fetch(apiUrl('/auth/register'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })

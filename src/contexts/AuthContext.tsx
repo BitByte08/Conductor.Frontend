@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { apiUrl } from '../lib/api';
 
 interface AuthContextType {
     token: string | null;
@@ -16,7 +17,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         if (token) {
             // Validate or fetch user details
-            fetch('/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+            fetch(apiUrl('/auth/me'), { headers: { Authorization: `Bearer ${token}` } })
                 .then(res => {
                     if (res.ok) return res.json();
                     throw new Error("Invalid token");

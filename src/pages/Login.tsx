@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { apiUrl } from '../lib/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { LayoutGrid } from 'lucide-react';
 
@@ -19,7 +20,7 @@ export const Login: React.FC = () => {
         form.append('password', password);
 
         try {
-            const res = await fetch('/auth/token', {
+            const res = await fetch(apiUrl('/auth/token'), {
                 method: 'POST',
                 body: form
             });
