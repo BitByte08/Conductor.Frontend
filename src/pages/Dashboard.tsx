@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { StatsWidget } from '../components/StatsWidget';
 import { useAgentSocket } from '../hooks/useAgentSocket';
 import { useAuth } from '../contexts/AuthContext';
+import { apiUrl } from '../lib/api';
 
 type Agent = {
     id: string;

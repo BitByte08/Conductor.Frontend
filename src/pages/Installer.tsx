@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Download, Box } from 'lucide-react';
 import { useAgentSocket } from '../hooks/useAgentSocket';
+import { apiUrl } from '../lib/api';
 
 export const Installer: React.FC = () => {
     const [searchParams] = useSearchParams();

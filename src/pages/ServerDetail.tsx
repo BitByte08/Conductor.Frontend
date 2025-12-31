@@ -5,6 +5,7 @@ import { Console } from './Console';
 import { ServerMods } from './ServerMods';
 import { StatsWidget } from '../components/StatsWidget';
 import { useAgentSocket } from '../hooks/useAgentSocket';
+import { apiUrl } from '../lib/api';
 
 const TabButton: React.FC<{ active: boolean; onClick: () => void; icon: any; label: string }> = ({ active, onClick, icon: Icon, label }) => (
     <button

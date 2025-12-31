@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAgentSocket } from '../hooks/useAgentSocket';
+import { apiUrl } from '../lib/api';
 import { Send, Terminal as TerminalIcon, Play, Square } from 'lucide-react';
 
 export const Console: React.FC = () => {
