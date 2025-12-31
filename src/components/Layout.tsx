@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { Server, Terminal, Settings, LayoutGrid } from 'lucide-react';
+import { Server, Settings, LayoutGrid } from 'lucide-react';
 
 export const Layout: React.FC = () => {
     return (

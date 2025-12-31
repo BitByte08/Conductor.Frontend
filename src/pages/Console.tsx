@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useAgentSocket } from '../hooks/useAgentSocket';
 import { Send, Terminal as TerminalIcon, Play, Square } from 'lucide-react';
 
 export const Console: React.FC = () => {
-    const agentId = 'test-agent'; // Demo ID
-    const { status, messages } = useAgentSocket(agentId);
+    const params = useParams<{ agentId: string }>();
+    const agentId = params.agentId || 'test-agent';
+    const { agentStatus, wsStatus, messages } = useAgentSocket(agentId);
     const [input, setInput] = useState('');
 
     const sendCommand = async (cmd: string) => {
@@ -49,9 +51,9 @@ export const Console: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{
                             width: '8px', height: '8px', borderRadius: '50%',
-                            background: status === 'CONNECTED' ? '#4ade80' : '#ef4444'
+                            background: wsStatus === 'CONNECTED' ? '#4ade80' : '#ef4444'
                         }} />
-                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{status}</span>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{wsStatus} / {agentStatus}</span>
                     </div>
                 </div>
             </div>

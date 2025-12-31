@@ -60,6 +60,21 @@ export const ServerDetail: React.FC = () => {
             } else if (lastMsg.type === 'PROPERTIES') {
                 // Format: { type: "PROPERTIES", payload: { "gamemode": "survival", ... } }
                 setServerProperties(lastMsg.payload);
+            } else if (lastMsg.type === 'LOG') {
+                const line = lastMsg.payload?.line || '';
+                // Detect metadata notice written by agent
+                if (line.startsWith('METADATA:')) {
+                    const rest = line.replace('METADATA:', '').trim();
+                    setMetadata(rest);
+                }
+            } else if (lastMsg.type === 'RAW') {
+                // If raw contains METADATA, pick it up
+                const raw = lastMsg.raw || '';
+                if (typeof raw === 'string' && raw.includes('METADATA:')) {
+                    const idx = raw.indexOf('METADATA:');
+                    const rest = raw.slice(idx + 'METADATA:'.length).trim();
+                    setMetadata(rest);
+                }
             }
         }
     }, [messages]);

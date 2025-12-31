@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { Layout } from './components/Layout';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
-import { Console } from './pages/Console';
 import { Dashboard } from './pages/Dashboard';
 import { Installer } from './pages/Installer';
 import { ServerMods } from './pages/ServerMods';

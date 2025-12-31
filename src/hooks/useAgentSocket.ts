@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 type Message = {
     type: string;
     payload?: any;
+    raw?: string;
 };
 
 export const useAgentSocket = (agentId: string) => {
@@ -36,6 +37,8 @@ export const useAgentSocket = (agentId: string) => {
                 }
             } catch (e) {
                 console.error('Parse error', e);
+                // Preserve raw messages so UI can show them for debugging
+                setMessages(prev => [...prev.slice(-99), { type: 'RAW', raw: event.data }]);
             }
         };
 
@@ -50,7 +53,6 @@ export const useAgentSocket = (agentId: string) => {
         }
     }, []);
 
-    // Return agentStatus as 'status' for backward compatibility or explicit field
-    // But better to expose both or override status
-    return { status: agentStatus, wsStatus: status, messages, sendHelp }; // Override status to be Agent Status
+    // Expose both fields for clarity
+    return { agentStatus, status: agentStatus, wsStatus: status, messages, sendHelp };
 };

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Server, Activity, Terminal, Play, Square, Download, Package, Plus } from 'lucide-react';
+import { Server, Activity, Terminal, Play, Square, Package, Plus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { StatsWidget } from '../components/StatsWidget';
 import { useAgentSocket } from '../hooks/useAgentSocket';

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Download, Box } from 'lucide-react';
+import { useAgentSocket } from '../hooks/useAgentSocket';
 
 export const Installer: React.FC = () => {
     const [searchParams] = useSearchParams();
@@ -12,45 +13,93 @@ export const Installer: React.FC = () => {
     const [versions, setVersions] = useState<any[]>([]);
     const [selectedVersion, setSelectedVersion] = useState('');
     const [installing, setInstalling] = useState(false);
+    const [installMessage, setInstallMessage] = useState<string | null>(null);
+    const [installError, setInstallError] = useState<string | null>(null);
 
+    const { messages } = useAgentSocket(agentId);
+
+    // Debounced search for versions
+    const [filter, setFilter] = useState('');
     useEffect(() => {
-        if (step === 2) {
-            fetch(`/api/metadata/versions/${type}`)
-                .then(res => res.json())
-                .then(data => {
-                    // Normalize data structure if needed
-                    // Piston meta: { id: "1.20.4", ... }
-                    // Paper: "1.20.4"
-                    if (type === 'paper') {
-                        // Paper returns list of strings
-                        setVersions(data.reverse().map((v: string) => ({ id: v })));
-                    } else {
-                        setVersions(data);
-                    }
-                });
+        if (step !== 2) return;
+        let mounted = true;
+        const controller = new AbortController();
+
+        const fetchVersions = async () => {
+            const q = filter ? `?q=${encodeURIComponent(filter)}&limit=200` : `?limit=200`;
+            const res = await fetch(`/api/metadata/versions/${type}${q}`, { signal: controller.signal });
+            const data = await res.json();
+            if (!mounted) return;
+            if (type === 'paper') {
+                setVersions((data as string[]).map((v: string) => ({ id: v })));
+            } else {
+                // vanilla returns string ids as well
+                setVersions((data as string[]).map((v: string) => ({ id: v })));
+            }
+        };
+
+        const t = window.setTimeout(fetchVersions, 250);
+        return () => { mounted = false; controller.abort(); window.clearTimeout(t); };
+    }, [step, type, filter]);
+
+    // Watch agent messages while installing and detect success/failure
+    useEffect(() => {
+        if (!installing) return;
+        // scan messages for relevant install output
+        for (let i = messages.length - 1; i >= 0; i--) {
+            const msg = messages[i] as any;
+            if (msg.type === 'LOG') {
+                const line = msg.payload?.line || '';
+                if (line.includes('Installation complete')) {
+                    setInstallMessage('Installation complete! Starting server and redirecting to console...');
+                    // Trigger server start via backend API
+                    fetch(`/api/agent/${agentId}/start`, { method: 'POST' }).then(() => {
+                        setTimeout(() => navigate(`/server/${agentId}?tab=console`), 800);
+                    }).catch(() => {
+                        // If start fails, still navigate so user can press start
+                        setTimeout(() => navigate(`/server/${agentId}?tab=console`), 800);
+                    });
+                    setInstalling(false);
+                    return;
+                }
+                if (line.includes('Failed to download') || line.includes('Failed to install') || line.includes('Failed to create')) {
+                    setInstallError(line);
+                    setInstallMessage(null);
+                    setInstalling(false);
+                    return;
+                }
+                // show latest log as progress
+                setInstallMessage(line);
+                break;
+            } else if (msg.type === 'RAW') {
+                // show raw messages as progress
+                setInstallMessage(msg.raw || null);
+                break;
+            }
         }
-    }, [step, type]);
+    }, [messages, installing, navigate, agentId]);
 
     const handleInstall = async () => {
         setInstalling(true);
+        setInstallError(null);
+        setInstallMessage('Installation requested — waiting for agent to finish...');
         try {
             const res = await fetch(`/api/agent/${agentId}/install`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ type, version: selectedVersion })
             });
-            if (res.ok) {
-                // Wait a moment for visual feedback
-                setTimeout(() => {
-                    navigate(`/server/${agentId}?tab=console`);
-                }, 1500);
-            } else {
-                alert('Failed to start installation');
+            if (!res.ok) {
+                const text = await res.text();
+                setInstallError(`Failed to request install: ${text}`);
+                setInstallMessage(null);
                 setInstalling(false);
             }
+            // Otherwise we keep the installing modal open and wait for websocket messages
         } catch (e) {
             console.error(e);
-            alert('Error installing');
+            setInstallError('Error sending install request');
+            setInstallMessage(null);
             setInstalling(false);
         }
     };
@@ -108,6 +157,13 @@ export const Installer: React.FC = () => {
             {step === 2 && (
                 <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column' }}>
                     <h3>버전 선택 ({type})</h3>
+                    <input
+                        type="text"
+                        value={filter}
+                        onChange={e => setFilter(e.target.value)}
+                        placeholder="버전 검색..."
+                        style={{ padding: '0.5rem', borderRadius: '8px', marginBottom: '0.5rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-glass)', color: 'white' }}
+                    />
                     <select
                         value={selectedVersion}
                         onChange={e => setSelectedVersion(e.target.value)}
@@ -144,6 +200,10 @@ export const Installer: React.FC = () => {
                             {installing ? '설치 중...' : '서버 설치 시작'}
                         </button>
                     </div>
+
+                    {installMessage && (
+                        <div style={{ marginTop: '1rem', color: installError ? '#fca5a5' : 'var(--text-muted)' }}>{installMessage}</div>
+                    )}
                 </div>
             )}
 
