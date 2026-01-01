@@ -53,9 +53,7 @@ export const Installer: React.FC = () => {
                 const line = msg.payload?.line || '';
                 if (line.includes('Installation complete')) {
                     setInstallMessage('Installation complete! Starting server and redirecting to console...');
-                    try {
-                        await api.post(`/api/agent/${agentId}/start`);
-                    } catch (e) {}
+                    api.post(`/api/agent/${agentId}/start`).catch(() => {});
                     setTimeout(() => navigate(`/server/${agentId}?tab=console`), 800);
                     setInstalling(false);
                     return;
