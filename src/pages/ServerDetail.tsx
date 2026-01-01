@@ -41,6 +41,7 @@ export const ServerDetail: React.FC = () => {
     const [metadata, setMetadata] = useState<string>('');
     const [ramConfig, setRamConfig] = useState<string>('');
     const [serverProperties, setServerProperties] = useState<Record<string, string>>({});
+    const [serverIp, setServerIp] = useState<string>('unknown');
 
     useEffect(() => {
         if (messages.length > 0) {
@@ -61,6 +62,7 @@ export const ServerDetail: React.FC = () => {
                 // Update Metadata/Config from Heartbeat
                 if (payload.metadata) setMetadata(payload.metadata);
                 if (payload.config?.ram_mb) setRamConfig(payload.config.ram_mb);
+                if (payload.server_ip) setServerIp(payload.server_ip);
             } else if (lastMsg.type === 'PROPERTIES') {
                 // Format: { type: "PROPERTIES", payload: { "gamemode": "survival", ... } }
                 setServerProperties(lastMsg.payload);
@@ -292,8 +294,8 @@ export const ServerDetail: React.FC = () => {
                                 <StatsWidget title="RAM 사용량" data={statsHistory} dataKey="ram" color="#38bdf8" unit=" GB" />
                                 <div className="glass-panel" style={{ padding: '2rem' }}>
                                     <h3>빠른 정보</h3>
-                                    <p>IP 주소: 127.0.0.1</p>
-                                    <p>포트: 25565</p>
+                                    <p>IP 주소: {serverIp}</p>
+                                    <p>포트: {serverProperties['server-port'] || '25565'}</p>
                                 </div>
                             </>
                         )}
