@@ -1,4 +1,4 @@
-name = "conductor-frontend"
+name = "conductor"
 compatibility_date = "2024-12-01"
 main = "src/_worker.js"
 
