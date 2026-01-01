@@ -318,7 +318,7 @@ export const ServerDetail: React.FC = () => {
                     </div>
                 )}
                 {activeTab === 'console' && <div style={{ height: '100%' }}><Console /></div>}
-                {activeTab === 'mods' && <div style={{ height: '100%', overflow: 'auto' }}><ServerMods /></div>}
+                {activeTab === 'mods' && <div style={{ height: '100%', overflow: 'auto' }}><ServerMods agentId={agentId} /></div>}
                 {activeTab === 'settings' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', height: '100%', overflow: 'auto' }}>
                         {/* Server Configuration */}

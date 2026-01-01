@@ -3,9 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import { Package, Search, Download } from 'lucide-react';
 import api from '../lib/axios';
 
-export const ServerMods: React.FC = () => {
+export const ServerMods: React.FC<{ agentId?: string }> = ({ agentId: propAgentId }) => {
     const [searchParams] = useSearchParams();
-    const agentId = searchParams.get('agent') || 'test-agent';
+    const agentId = propAgentId || searchParams.get('agent') || 'test-agent';
 
     const [query, setQuery] = useState('');
     const [mods, setMods] = useState<any[]>([]);
