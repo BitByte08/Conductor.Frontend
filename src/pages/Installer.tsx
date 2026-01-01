@@ -2,13 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Download, Box } from 'lucide-react';
 import { useAgentSocket } from '../hooks/useAgentSocket';
-import { useAuth } from '../contexts/AuthContext';
-import { apiUrl } from '../lib/api';
+import api from '../lib/axios';
 
 export const Installer: React.FC = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const { token } = useAuth();
     const agentId = searchParams.get('agent') || 'test-agent';
 
     const [step, setStep] = useState(1);
@@ -30,18 +28,15 @@ export const Installer: React.FC = () => {
 
         const fetchVersions = async () => {
             const q = filter ? `?q=${encodeURIComponent(filter)}&limit=200` : `?limit=200`;
-            const res = await fetch(apiUrl(`/api/metadata/versions/${type}${q}`), { 
-                signal: controller.signal,
-                headers: token ? { Authorization: `Bearer ${token}` } : {}
-            });
-            const data = await res.json();
-            if (!mounted) return;
-            if (type === 'paper') {
-                setVersions((data as string[]).map((v: string) => ({ id: v })));
-            } else {
-                // vanilla returns string ids as well
-                setVersions((data as string[]).map((v: string) => ({ id: v })));
-            }
+            try {
+                const { data } = await api.get(`/api/metadata/versions/${type}${q}`, { signal: controller.signal });
+                if (!mounted) return;
+                if (type === 'paper') {
+                    setVersions((data as string[]).map((v: string) => ({ id: v })));
+                } else {
+                    setVersions((data as string[]).map((v: string) => ({ id: v })));
+                }
+            } catch (e) {}
         };
 
         const t = window.setTimeout(fetchVersions, 250);
@@ -58,16 +53,10 @@ export const Installer: React.FC = () => {
                 const line = msg.payload?.line || '';
                 if (line.includes('Installation complete')) {
                     setInstallMessage('Installation complete! Starting server and redirecting to console...');
-                    // Trigger server start via backend API
-                    fetch(apiUrl(`/api/agent/${agentId}/start`), { 
-                        method: 'POST',
-                        headers: token ? { Authorization: `Bearer ${token}` } : {}
-                    }).then(() => {
-                        setTimeout(() => navigate(`/server/${agentId}?tab=console`), 800);
-                    }).catch(() => {
-                        // If start fails, still navigate so user can press start
-                        setTimeout(() => navigate(`/server/${agentId}?tab=console`), 800);
-                    });
+                    try {
+                        await api.post(`/api/agent/${agentId}/start`);
+                    } catch (e) {}
+                    setTimeout(() => navigate(`/server/${agentId}?tab=console`), 800);
                     setInstalling(false);
                     return;
                 }
@@ -93,22 +82,13 @@ export const Installer: React.FC = () => {
         setInstallError(null);
         setInstallMessage('Installation requested — waiting for agent to finish...');
         try {
-            const res = await fetch(apiUrl(`/api/agent/${agentId}/install`), {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    ...(token && { Authorization: `Bearer ${token}` })
-                },
-                body: JSON.stringify({ type, version: selectedVersion })
-            });
-            if (!res.ok) {
-                const text = await res.text();
-                setInstallError(`Failed to request install: ${text}`);
-                setInstallMessage(null);
-                setInstalling(false);
-            }
-            // Otherwise we keep the installing modal open and wait for websocket messages
-        } catch (e) {
+            await api.post(`/api/agent/${agentId}/install`, { type, version: selectedVersion });
+        } catch (e: any) {
+            setInstallError(`Failed to request install: ${e.response?.data?.detail || e.message}`);
+            setInstallMessage(null);
+            setInstalling(false);
+        }
+    };
             console.error(e);
             setInstallError('Error sending install request');
             setInstallMessage(null);

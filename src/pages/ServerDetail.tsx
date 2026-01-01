@@ -5,7 +5,7 @@ import { Console } from './Console';
 import { ServerMods } from './ServerMods';
 import { StatsWidget } from '../components/StatsWidget';
 import { useAgentSocket } from '../hooks/useAgentSocket';
-import { apiUrl } from '../lib/api';
+import api from '../lib/axios';
 
 const TabButton: React.FC<{ active: boolean; onClick: () => void; icon: any; label: string }> = ({ active, onClick, icon: Icon, label }) => (
     <button
@@ -35,6 +35,7 @@ export const ServerDetail: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'overview' | 'console' | 'mods' | 'settings'>('overview');
     const { status: agentStatus, messages } = useAgentSocket(agentId || '');
     const [statsHistory, setStatsHistory] = useState<any[]>([]);
+    const [serverStatus, setServerStatus] = useState<string>('OFFLINE');
 
     // New State for Config/Metadata/Properties
     const [metadata, setMetadata] = useState<string>('');
@@ -55,6 +56,8 @@ export const ServerDetail: React.FC = () => {
                     return [...prev.slice(-49), newData];
                 });
 
+                // Update server status
+                if (payload.server_status) setServerStatus(payload.server_status);
                 // Update Metadata/Config from Heartbeat
                 if (payload.metadata) setMetadata(payload.metadata);
                 if (payload.config?.ram_mb) setRamConfig(payload.config.ram_mb);
@@ -88,23 +91,22 @@ export const ServerDetail: React.FC = () => {
 
     useEffect(() => {
         const fetchMyRole = async () => {
-            // Get agent list to find our role for this agent
-            const res = await fetch(apiUrl('/api/agents'), { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-            if (!res.ok) return;
-            const data = await res.json();
-            const me = data.find((a: any) => a.id === agentId);
-            if (me && me.role) setMyRole(me.role);
+            try {
+                const { data } = await api.get('/api/agents');
+                const me = data.find((a: any) => a.id === agentId);
+                if (me && me.role) setMyRole(me.role);
+            } catch (e) {}
         };
 
         const fetchCollaborators = async () => {
-            const res = await fetch(apiUrl(`/api/agent/${agentId}/collaborators`), { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-            if (!res.ok) return;
-            const data = await res.json();
-            setCollaborators(data);
+            try {
+                const { data } = await api.get(`/api/agent/${agentId}/collaborators`);
+                setCollaborators(data);
+            } catch (e) {}
         };
 
         if (activeTab === 'settings' && agentId) {
-            fetch(apiUrl(`/api/agent/${agentId}/properties/fetch`), { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+            api.post(`/api/agent/${agentId}/properties/fetch`);
             fetchMyRole();
             fetchCollaborators();
         }
@@ -112,29 +114,23 @@ export const ServerDetail: React.FC = () => {
 
     const handleInvite = async () => {
         if (!inviteUsername.trim()) return;
-        const res = await fetch(apiUrl(`/api/agent/${agentId}/collaborators`), {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: inviteUsername.trim(), role: inviteRole })
-        });
-        if (res.ok) {
+        try {
+            await api.post(`/api/agent/${agentId}/collaborators`, { username: inviteUsername.trim(), role: inviteRole });
             setInviteUsername('');
             setInviteRole('viewer');
-            // refresh list
-            const r = await fetch(apiUrl(`/api/agent/${agentId}/collaborators`), { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-            setCollaborators(await r.json());
-        } else {
-            const text = await res.text();
-            alert(`Invite failed: ${text}`);
+            const { data } = await api.get(`/api/agent/${agentId}/collaborators`);
+            setCollaborators(data);
+        } catch (e: any) {
+            alert(`Invite failed: ${e.response?.data?.detail || e.message}`);
         }
     };
 
     const handleRemoveCollaborator = async (id: number) => {
         if (!confirm('이 사용자를 협업자에서 제거하시겠습니까?')) return;
-        const res = await fetch(apiUrl(`/api/agent/${agentId}/collaborators/${id}`), { method: 'DELETE', headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-        if (res.ok) {
+        try {
+            await api.delete(`/api/agent/${agentId}/collaborators/${id}`);
             setCollaborators(prev => prev.filter(c => c.id !== id));
-        } else {
+        } catch (e) {
             alert('Failed to remove collaborator');
         }
     };
@@ -143,27 +139,31 @@ export const ServerDetail: React.FC = () => {
 
     const handleAction = async (action: 'start' | 'stop') => {
         if (!agentId) return;
-        await fetch(apiUrl(`/api/agent/${agentId}/${action}`), { method: 'POST' });
+        try {
+            await api.post(`/api/agent/${agentId}/${action}`);
+        } catch (e) {
+            console.error(`Failed to ${action} server`, e);
+        }
     };
 
     const handleSaveConfig = async () => {
         if (!agentId) return;
-        await fetch(apiUrl(`/api/agent/${agentId}/config`), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ram_mb: ramConfig })
-        });
-        alert('설정 저장 완료! 서버를 재시작해주세요.');
+        try {
+            await api.post(`/api/agent/${agentId}/config`, { ram_mb: ramConfig });
+            alert('설정 저장 완료! 서버를 재시작해주세요.');
+        } catch (e) {
+            alert('설정 저장 실패');
+        }
     };
 
     const handleSaveProperties = async () => {
         if (!agentId) return;
-        await fetch(apiUrl(`/api/agent/${agentId}/properties/update`), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(serverProperties)
-        });
-        alert('서버 속성이 저장되었습니다.');
+        try {
+            await api.post(`/api/agent/${agentId}/properties/update`, serverProperties);
+            alert('서버 속성이 저장되었습니다.');
+        } catch (e) {
+            alert('서버 속성 저장 실패');
+        }
     };
 
     if (!agentId) return <div>Invalid Agent ID</div>;
@@ -223,14 +223,6 @@ export const ServerDetail: React.FC = () => {
                         <span style={{ color: 'var(--text-muted)' }}>{agentStatus === 'ONLINE' ? 'CONNECTED' : 'OFFLINE'}</span>
                     </div>
                 </div>
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-                    <button onClick={() => handleAction('start')} className="btn-primary" style={{ background: '#22c55e' }}>
-                        <Play size={16} /> 시작
-                    </button>
-                    <button onClick={() => handleAction('stop')} className="btn-primary" style={{ background: '#ef4444' }}>
-                        <Square size={16} /> 정지
-                    </button>
-                </div>
             </div>
 
             {/* Tabs */}
@@ -264,6 +256,29 @@ export const ServerDetail: React.FC = () => {
                             </div>
                         ) : (
                             <>
+                                <div className="glass-panel" style={{ padding: '2rem', gridColumn: '1 / -1' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                                        <h3>서버 제어</h3>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            {serverStatus === 'OFFLINE' ? (
+                                                <button onClick={() => handleAction('start')} className="btn-primary" style={{ background: '#22c55e' }}>
+                                                    <Play size={16} /> 시작
+                                                </button>
+                                            ) : (
+                                                <button onClick={() => handleAction('stop')} className="btn-primary" style={{ background: '#ef4444' }}>
+                                                    <Square size={16} /> 정지
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem' }}>
+                                        <span style={{
+                                            width: '8px', height: '8px', borderRadius: '50%',
+                                            background: serverStatus === 'ONLINE' ? '#4ade80' : '#ef4444'
+                                        }} />
+                                        <span style={{ color: 'var(--text-muted)' }}>서버 상태: {serverStatus}</span>
+                                    </div>
+                                </div>
                                 <StatsWidget title="CPU 사용량" data={statsHistory} dataKey="cpu" color="#f472b6" unit="%" />
                                 <StatsWidget title="RAM 사용량" data={statsHistory} dataKey="ram" color="#38bdf8" unit=" GB" />
                                 <div className="glass-panel" style={{ padding: '2rem' }}>

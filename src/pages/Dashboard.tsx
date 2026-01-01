@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { StatsWidget } from '../components/StatsWidget';
 import { useAgentSocket } from '../hooks/useAgentSocket';
 import { useAuth } from '../contexts/AuthContext';
-import { apiUrl } from '../lib/api';
+import api from '../lib/axios';
 
 type Agent = {
     id: string;
@@ -43,7 +43,9 @@ const ServerCard: React.FC<{ agent: Agent }> = ({ agent }) => {
 
     const handleAction = async (e: React.MouseEvent, action: 'start' | 'stop') => {
         e.stopPropagation();
-        await fetch(`/api/agent/${agent.id}/${action}`, { method: 'POST' });
+        try {
+            await api.post(`/api/agent/${agent.id}/${action}`);
+        } catch (e) {}
     };
 
     const isOffline = agentStatus !== 'ONLINE';
@@ -125,15 +127,13 @@ export const Dashboard: React.FC = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [newAgentName, setNewAgentName] = useState('');
 
-    const fetchAgents = () => {
-        if (!token) return;
-        fetch(apiUrl('/api/agents'), { headers: { Authorization: `Bearer ${token}` } })
-            .then(res => {
-                if (res.status === 401) { logout(); return []; }
-                return res.json();
-            })
-            .then(data => setAgents(data || []))
-            .catch(err => console.error(err));
+    const fetchAgents = async () => {
+        try {
+            const { data } = await api.get('/api/agents');
+            setAgents(data || []);
+        } catch (e: any) {
+            if (e.response?.status === 401) logout();
+        }
     };
 
     useEffect(() => {
@@ -143,21 +143,15 @@ export const Dashboard: React.FC = () => {
     const handleAddAgent = async () => {
         if (!newAgentName) return;
         try {
-            const res = await fetch(apiUrl('/api/agents/create'), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ name: newAgentName })
-            });
-            if (res.ok) {
-                const newAgent = await res.json();
-                alert(`에이전트 생성 완료!\nID: ${newAgent.id}\n(이 ID를 에이전트 설정에 입력하세요)`);
-                setShowAddModal(false);
-                setNewAgentName('');
-                fetchAgents();
-            }
+            const { data } = await api.post('/api/agents/create', { name: newAgentName });
+            alert(`에이전트 생성 완료!\nID: ${data.id}\n(이 ID를 에이전트 설정에 입력하세요)`);
+            setShowAddModal(false);
+            setNewAgentName('');
+            fetchAgents();
+        } catch (e) {
+            alert('에이전트 생성 실패');
+        }
+    };
         } catch (e) {
             alert('Failed to create agent');
         }

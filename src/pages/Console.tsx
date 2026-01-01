@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAgentSocket } from '../hooks/useAgentSocket';
-import { apiUrl } from '../lib/api';
+import api from '../lib/axios';
 import { Send, Terminal as TerminalIcon, Play, Square } from 'lucide-react';
 
 export const Console: React.FC = () => {
@@ -11,15 +11,15 @@ export const Console: React.FC = () => {
     const [input, setInput] = useState('');
 
     const sendCommand = async (cmd: string) => {
-        await fetch(apiUrl(`/api/agent/${agentId}/command`), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ command: cmd })
-        });
+        try {
+            await api.post(`/api/agent/${agentId}/command`, { command: cmd });
+        } catch (e) {}
     };
 
     const handleAction = async (action: 'start' | 'stop') => {
-        await fetch(apiUrl(`/api/agent/${agentId}/${action}`), { method: 'POST' });
+        try {
+            await api.post(`/api/agent/${agentId}/${action}`);
+        } catch (e) {}
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
