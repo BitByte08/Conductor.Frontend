@@ -152,10 +152,6 @@ export const Dashboard: React.FC = () => {
             alert('에이전트 생성 실패');
         }
     };
-        } catch (e) {
-            alert('Failed to create agent');
-        }
-    };
 
     return (
         <div style={{ padding: '0 1rem', maxWidth: '1600px', margin: '0 auto' }}>

@@ -89,12 +89,6 @@ export const Installer: React.FC = () => {
             setInstalling(false);
         }
     };
-            console.error(e);
-            setInstallError('Error sending install request');
-            setInstallMessage(null);
-            setInstalling(false);
-        }
-    };
 
     return (
         <div className="glass-panel" style={{ padding: '2rem', maxWidth: '600px', margin: '0 auto', position: 'relative', overflow: 'hidden' }}>
@@ -193,8 +187,8 @@ export const Installer: React.FC = () => {
                         </button>
                     </div>
 
-                    {installMessage && (
-                        <div style={{ marginTop: '1rem', color: installError ? '#fca5a5' : 'var(--text-muted)' }}>{installMessage}</div>
+                    {installError && (
+                        <div style={{ marginTop: '1rem', color: '#fca5a5' }}>{installError}</div>
                     )}
                 </div>
             )}
@@ -205,7 +199,7 @@ export const Installer: React.FC = () => {
                         position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
                         background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)',
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        zIndex: 50, borderRadius: '16px'
+                        zIndex: 50, borderRadius: '16px', padding: '2rem'
                     }}>
                         <div className="spinner" style={{
                             width: '48px', height: '48px', border: '4px solid rgba(255,255,255,0.1)',
@@ -213,8 +207,25 @@ export const Installer: React.FC = () => {
                             animation: 'spin 1s linear infinite', marginBottom: '1rem'
                         }} />
                         <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-                        <h3 style={{ margin: 0 }}>설치 시작 중...</h3>
-                        <p style={{ color: 'var(--text-muted)' }}>에이전트에 명령을 전송하고 있습니다.</p>
+                        <h3 style={{ margin: 0, marginBottom: '0.5rem' }}>설치 진행 중...</h3>
+                        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>에이전트가 서버를 설치하고 있습니다.</p>
+                        
+                        {installMessage && (
+                            <div style={{
+                                marginTop: '1rem',
+                                padding: '1rem',
+                                background: 'rgba(129, 140, 248, 0.1)',
+                                border: '1px solid rgba(129, 140, 248, 0.3)',
+                                borderRadius: '8px',
+                                maxWidth: '100%',
+                                wordBreak: 'break-word',
+                                fontFamily: 'monospace',
+                                fontSize: '0.85rem',
+                                color: '#c7d2fe'
+                            }}>
+                                {installMessage}
+                            </div>
+                        )}
                     </div>
                 )
             }
