@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Download, Box } from 'lucide-react';
 import { useAgentSocket } from '../hooks/useAgentSocket';
+import { useAuth } from '../contexts/AuthContext';
 import { apiUrl } from '../lib/api';
 
 export const Installer: React.FC = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const { token } = useAuth();
     const agentId = searchParams.get('agent') || 'test-agent';
 
     const [step, setStep] = useState(1);
@@ -28,7 +30,10 @@ export const Installer: React.FC = () => {
 
         const fetchVersions = async () => {
             const q = filter ? `?q=${encodeURIComponent(filter)}&limit=200` : `?limit=200`;
-            const res = await fetch(apiUrl(`/api/metadata/versions/${type}${q}`), { signal: controller.signal });
+            const res = await fetch(apiUrl(`/api/metadata/versions/${type}${q}`), { 
+                signal: controller.signal,
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+            });
             const data = await res.json();
             if (!mounted) return;
             if (type === 'paper') {
@@ -54,7 +59,10 @@ export const Installer: React.FC = () => {
                 if (line.includes('Installation complete')) {
                     setInstallMessage('Installation complete! Starting server and redirecting to console...');
                     // Trigger server start via backend API
-                    fetch(`/api/agent/${agentId}/start`, { method: 'POST' }).then(() => {
+                    fetch(apiUrl(`/api/agent/${agentId}/start`), { 
+                        method: 'POST',
+                        headers: token ? { Authorization: `Bearer ${token}` } : {}
+                    }).then(() => {
                         setTimeout(() => navigate(`/server/${agentId}?tab=console`), 800);
                     }).catch(() => {
                         // If start fails, still navigate so user can press start
@@ -87,7 +95,10 @@ export const Installer: React.FC = () => {
         try {
             const res = await fetch(apiUrl(`/api/agent/${agentId}/install`), {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token && { Authorization: `Bearer ${token}` })
+                },
                 body: JSON.stringify({ type, version: selectedVersion })
             });
             if (!res.ok) {
