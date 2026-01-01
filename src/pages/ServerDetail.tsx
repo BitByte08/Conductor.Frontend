@@ -65,6 +65,7 @@ export const ServerDetail: React.FC = () => {
                 if (payload.server_ip) setServerIp(payload.server_ip);
             } else if (lastMsg.type === 'PROPERTIES') {
                 // Format: { type: "PROPERTIES", payload: { "gamemode": "survival", ... } }
+                console.log('[ServerDetail] Received PROPERTIES:', lastMsg.payload);
                 setServerProperties(lastMsg.payload);
             } else if (lastMsg.type === 'LOG') {
                 const line = lastMsg.payload?.line || '';
@@ -108,7 +109,10 @@ export const ServerDetail: React.FC = () => {
         };
 
         if (activeTab === 'settings' && agentId) {
-            api.post(`/api/agent/${agentId}/properties/fetch`);
+            console.log('[ServerDetail] Requesting properties fetch for agent:', agentId);
+            api.post(`/api/agent/${agentId}/properties/fetch`)
+                .then(() => console.log('[ServerDetail] Properties fetch requested'))
+                .catch(e => console.error('[ServerDetail] Properties fetch failed:', e));
             fetchMyRole();
             fetchCollaborators();
         }
