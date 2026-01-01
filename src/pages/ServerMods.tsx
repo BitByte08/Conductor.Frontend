@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Package, Search, Download } from 'lucide-react';
+import api from '../lib/axios';
 
 export const ServerMods: React.FC = () => {
     const [searchParams] = useSearchParams();
@@ -15,8 +16,7 @@ export const ServerMods: React.FC = () => {
         e.preventDefault();
         setSearching(true);
         try {
-            const res = await fetch(`/api/mods/search?query=${encodeURIComponent(query)}`);
-            const data = await res.json();
+            const { data } = await api.get(`/api/mods/search?query=${encodeURIComponent(query)}`);
             setMods(data);
         } catch (err) {
             console.error(err);
@@ -52,13 +52,9 @@ export const ServerMods: React.FC = () => {
             const latest = versions[0];
             const file = latest.files[0];
 
-            await fetch(`/api/agent/${agentId}/mods`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    url: file.url,
-                    filename: file.filename
-                })
+            await api.post(`/api/agent/${agentId}/mods`, {
+                url: file.url,
+                filename: file.filename
             });
             alert(`Installed ${file.filename}`);
         } catch (e) {
