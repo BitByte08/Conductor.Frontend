@@ -149,8 +149,17 @@ export const ServerDetail: React.FC = () => {
     const handleSaveConfig = async () => {
         if (!agentId) return;
         try {
+            // Stop server if running
+            if (serverStatus === 'ONLINE') {
+                await api.post(`/api/agent/${agentId}/stop`);
+                // Wait for server to stop
+                await new Promise(resolve => setTimeout(resolve, 3000));
+            }
+            // Update config
             await api.post(`/api/agent/${agentId}/config`, { ram_mb: ramConfig });
-            alert('설정 저장 완료! 서버를 재시작해주세요.');
+            // Restart server
+            await api.post(`/api/agent/${agentId}/start`);
+            alert('설정이 저장되고 서버가 재시작되었습니다.');
         } catch (e) {
             alert('설정 저장 실패');
         }
@@ -285,7 +294,6 @@ export const ServerDetail: React.FC = () => {
                                     <h3>빠른 정보</h3>
                                     <p>IP 주소: 127.0.0.1</p>
                                     <p>포트: 25565</p>
-                                    <p>할당된 RAM: {ramConfig || '기본값'}</p>
                                 </div>
                             </>
                         )}
@@ -294,12 +302,14 @@ export const ServerDetail: React.FC = () => {
                 {activeTab === 'console' && <div style={{ height: '100%' }}><Console /></div>}
                 {activeTab === 'mods' && <div style={{ height: '100%', overflow: 'auto' }}><ServerMods /></div>}
                 {activeTab === 'settings' && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', height: '100%', overflow: 'auto' }}>
-                        {/* RAM Config */}
-                        <div className="glass-panel" style={{ padding: '2rem', height: 'fit-content' }}>
-                            <h3>성능 설정 (Performance)</h3>
-                            <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ display: 'block', marginBottom: '8px' }}>최대 RAM 할당 (예: 4G, 2048M)</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', height: '100%', overflow: 'auto' }}>
+                        {/* Server Configuration */}
+                        <div className="glass-panel" style={{ padding: '2rem' }}>
+                            <h3>서버 설정</h3>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>설정을 변경하면 서버가 자동으로 재시작됩니다.</p>
+                            
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>최대 RAM 할당 (예: 4G, 2048M)</label>
                                 <input
                                     type="text"
                                     value={ramConfig}
@@ -307,20 +317,17 @@ export const ServerDetail: React.FC = () => {
                                     className="input-field"
                                     placeholder="4G"
                                 />
+                                <button onClick={handleSaveConfig} className="btn-primary" style={{ marginTop: '0.5rem' }}>
+                                    RAM 설정 저장 및 재시작
+                                </button>
                             </div>
-                            <button onClick={handleSaveConfig} className="btn-primary" style={{ marginBottom: '2rem' }}>
-                                설정 저장
-                            </button>
-
-                            <h3 style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem', marginTop: '1rem' }}>위험 구역</h3>
-                            <button className="btn-primary" style={{ background: '#ef4444' }}>서버 삭제</button>
                         </div>
 
                         {/* Server Properties */}
                         <div className="glass-panel" style={{ padding: '2rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                                 <h3>서버 속성 (server.properties)</h3>
-                                <button onClick={handleSaveProperties} className="btn-primary">속성 저장</button>
+                                <button onClick={handleSaveProperties} className="btn-primary">속성 저장 및 재시작</button>
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -361,38 +368,43 @@ export const ServerDetail: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Collaborators Section (full-width) */}
-                        <div style={{ gridColumn: '1 / -1' }}>
-                            <div className="glass-panel" style={{ padding: '1rem' }}>
-                                <h3>협업자 관리</h3>
-                                <div style={{ marginTop: '0.5rem', display: 'flex', gap: '8px' }}>
-                                    <input value={inviteUsername} onChange={e => setInviteUsername(e.target.value)} placeholder="Username to invite" style={{ padding: '0.5rem', marginRight: '0.5rem' }} />
-                                    <select value={inviteRole} onChange={e => setInviteRole(e.target.value as any)} style={{ padding: '0.5rem', marginRight: '0.5rem' }}>
-                                        <option value="viewer">Viewer</option>
-                                        <option value="manager">Manager</option>
-                                    </select>
-                                    <button onClick={handleInvite} className="btn-primary">초대</button>
-                                </div>
-
-                                <div style={{ marginTop: '1rem' }}>
-                                    <h4>현재 협업자</h4>
-                                    {collaborators.length === 0 ? (
-                                        <div style={{ color: 'var(--text-muted)' }}>협업자가 없습니다.</div>
-                                    ) : (
-                                        <ul>
-                                            {collaborators.map(c => (
-                                                <li key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                    <strong>{c.username}</strong>
-                                                    <span style={{ color: 'var(--text-muted)' }}>{c.role}</span>
-                                                    { (myRole === 'owner' || myRole === 'manager') && (
-                                                        <button onClick={() => handleRemoveCollaborator(c.id)} style={{ marginLeft: 'auto' }} className="btn-primary">제거</button>
-                                                    ) }
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
+                        {/* Collaborators Section */}
+                        <div className="glass-panel" style={{ padding: '2rem' }}>
+                            <h3>협업자 관리</h3>
+                            <div style={{ marginTop: '0.5rem', display: 'flex', gap: '8px' }}>
+                                <input value={inviteUsername} onChange={e => setInviteUsername(e.target.value)} placeholder="Username to invite" style={{ padding: '0.5rem', marginRight: '0.5rem' }} />
+                                <select value={inviteRole} onChange={e => setInviteRole(e.target.value as any)} style={{ padding: '0.5rem', marginRight: '0.5rem' }}>
+                                    <option value="viewer">Viewer</option>
+                                    <option value="manager">Manager</option>
+                                </select>
+                                <button onClick={handleInvite} className="btn-primary">초대</button>
                             </div>
+
+                            <div style={{ marginTop: '1rem' }}>
+                                <h4>현재 협업자</h4>
+                                {collaborators.length === 0 ? (
+                                    <div style={{ color: 'var(--text-muted)' }}>협업자가 없습니다.</div>
+                                ) : (
+                                    <ul>
+                                        {collaborators.map(c => (
+                                            <li key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                <strong>{c.username}</strong>
+                                                <span style={{ color: 'var(--text-muted)' }}>{c.role}</span>
+                                                { (myRole === 'owner' || myRole === 'manager') && (
+                                                    <button onClick={() => handleRemoveCollaborator(c.id)} style={{ marginLeft: 'auto' }} className="btn-primary">제거</button>
+                                                ) }
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </div>
+                        
+                        {/* Danger Zone */}
+                        <div className="glass-panel" style={{ padding: '2rem', borderColor: '#ef4444' }}>
+                            <h3 style={{ color: '#ef4444' }}>위험 구역</h3>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>이 작업은 되돌릴 수 없습니다.</p>
+                            <button className="btn-primary" style={{ background: '#ef4444' }}>서버 삭제</button>
                         </div>
                     </div>
                 )}
