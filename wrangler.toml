@@ -1,5 +1,6 @@
 name = "conductor-frontend"
 compatibility_date = "2024-12-01"
+main = "src/_worker.js"
 
 [assets]
 directory = "./dist"
