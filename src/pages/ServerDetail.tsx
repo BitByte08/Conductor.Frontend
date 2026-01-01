@@ -181,6 +181,18 @@ export const ServerDetail: React.FC = () => {
         }
     };
 
+    const handleDeleteServer = async () => {
+        if (!agentId) return;
+        if (!window.confirm('정말로 이 서버를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+        try {
+            await api.delete(`/api/agent/${agentId}`);
+            alert('서버가 삭제되었습니다.');
+            window.location.href = '/dashboard';
+        } catch (e: any) {
+            alert('서버 삭제 실패: ' + (e.response?.data?.detail || e.message));
+        }
+    };
+
     if (!agentId) return <div>Invalid Agent ID</div>;
 
     // 1. Agent Offline State
@@ -410,7 +422,7 @@ export const ServerDetail: React.FC = () => {
                         <div className="glass-panel" style={{ padding: '2rem', borderColor: '#ef4444' }}>
                             <h3 style={{ color: '#ef4444' }}>위험 구역</h3>
                             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>이 작업은 되돌릴 수 없습니다.</p>
-                            <button className="btn-primary" style={{ background: '#ef4444' }}>서버 삭제</button>
+                            <button onClick={handleDeleteServer} className="btn-primary" style={{ background: '#ef4444' }}>서버 삭제</button>
                         </div>
                     </div>
                 )}
